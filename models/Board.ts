@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IBoard extends Document {
   title: string;
   owner: mongoose.Types.ObjectId;
+  members?: mongoose.Types.ObjectId[];
   columns: {
     id: string;
     title: string;
@@ -16,6 +17,7 @@ const BoardSchema: Schema = new Schema(
   {
     title: { type: String, required: true },
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    members: [{ type: Schema.Types.ObjectId, ref: "User" }],
     columns: [
       {
         id: { type: String, required: true },

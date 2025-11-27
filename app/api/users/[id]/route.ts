@@ -6,9 +6,10 @@ import User from "@/models/User";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,11 +23,11 @@ export async function PATCH(
     }
 
     const { role } = await request.json();
-    if (!role || !["admin", "user"].includes(role)) {
+    if (!role || !["admin", "project_manager", "developer", "viewer", "user"].includes(role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 
-    const userToUpdate = await User.findById(params.id);
+    const userToUpdate = await User.findById(id);
     if (!userToUpdate) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }

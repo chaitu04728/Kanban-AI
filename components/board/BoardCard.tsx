@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { IBoard } from "@/models/Board";
-import { Calendar } from "lucide-react";
+import { Calendar, User } from "lucide-react";
 
 interface BoardCardProps {
-  board: IBoard;
+  board: IBoard & {
+    owner?: {
+      name?: string;
+      email?: string;
+    };
+  };
 }
 
 export function BoardCard({ board }: BoardCardProps) {
@@ -20,9 +25,17 @@ export function BoardCard({ board }: BoardCardProps) {
           {board.columns?.length || 0} columns
         </p>
       </div>
-      <div className="mt-4 flex items-center text-xs text-gray-400">
-        <Calendar className="mr-1.5 h-3.5 w-3.5" />
-        Created {new Date(board.createdAt).toLocaleDateString()}
+      <div className="mt-4 space-y-1">
+        {board.owner && (
+          <div className="flex items-center text-xs text-gray-400">
+            <User className="mr-1.5 h-3.5 w-3.5" />
+            Created by {board.owner.name || board.owner.email}
+          </div>
+        )}
+        <div className="flex items-center text-xs text-gray-400">
+          <Calendar className="mr-1.5 h-3.5 w-3.5" />
+          {new Date(board.createdAt).toLocaleDateString()}
+        </div>
       </div>
     </Link>
   );

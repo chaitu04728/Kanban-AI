@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Draggable } from "@hello-pangea/dnd";
-import { Calendar, MoreHorizontal, Copy, Archive } from "lucide-react";
+import { Calendar, MoreHorizontal, Copy, Archive, User } from "lucide-react";
 import { Task, Sprint } from "@/types";
 import { cn } from "@/lib/utils";
 import { TaskDetailDialog } from "./TaskDetailDialog";
@@ -74,66 +74,71 @@ export function TaskCard({ task, index, sprints }: TaskCardProps) {
             {...provided.dragHandleProps}
             onClick={() => setIsDetailOpen(true)}
             className={cn(
-              "group relative mb-3 rounded-lg border bg-white p-3 shadow-sm transition-all hover:shadow-md cursor-pointer",
-              snapshot.isDragging &&
-                "rotate-2 shadow-lg ring-2 ring-blue-500 ring-opacity-50"
+              "group relative mb-2.5 cursor-pointer rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md",
+              snapshot.isDragging && "shadow-xl ring-2 ring-blue-500"
             )}
             style={provided.draggableProps.style}
           >
-            <div className="flex items-start justify-between">
-              <h4 className="text-sm font-medium text-gray-900 line-clamp-2">
+            {/* Title and Menu */}
+            <div className="mb-2 flex items-start justify-between gap-2">
+              <h4 className="flex-1 text-sm font-medium text-gray-900 line-clamp-2">
                 {task.title}
               </h4>
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowActions(!showActions);
-                  }}
-                  className="opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  <MoreHorizontal className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                </button>
-                {showActions && (
-                  <div className="absolute right-0 top-6 z-10 w-40 rounded-md border border-gray-200 bg-white shadow-lg">
-                    <button
-                      onClick={handleDuplicate}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <Copy className="h-4 w-4" />
-                      Duplicate
-                    </button>
-                    <button
-                      onClick={handleArchive}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <Archive className="h-4 w-4" />
-                      Archive
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowActions(!showActions);
+                }}
+                className="rounded p-0.5 opacity-0 transition-opacity hover:bg-gray-100 group-hover:opacity-100"
+              >
+                <MoreHorizontal className="h-4 w-4 text-gray-400" />
+              </button>
+              {showActions && (
+                <div className="absolute right-2 top-8 z-10 w-36 overflow-hidden rounded-md border bg-white shadow-lg">
+                  <button
+                    onClick={handleDuplicate}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Duplicate
+                  </button>
+                  <button
+                    onClick={handleArchive}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                  >
+                    <Archive className="h-3.5 w-3.5" />
+                    Archive
+                  </button>
+                </div>
+              )}
             </div>
 
+            {/* Labels */}
             {task.labels && task.labels.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {task.labels.map((label, i) => (
+              <div className="mb-2 flex flex-wrap gap-1">
+                {task.labels.slice(0, 2).map((label, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700"
+                    className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700"
                   >
                     {label}
                   </span>
                 ))}
+                {task.labels.length > 2 && (
+                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
+                    +{task.labels.length - 2}
+                  </span>
+                )}
               </div>
             )}
 
-            <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+            {/* Bottom Info */}
+            <div className="flex items-center justify-between text-xs text-gray-500">
               <div className="flex items-center gap-2">
                 {task.priority && (
                   <span
                     className={cn(
-                      "h-2 w-2 rounded-full",
+                      "h-1.5 w-1.5 rounded-full",
                       task.priority === "high"
                         ? "bg-red-500"
                         : task.priority === "medium"
@@ -142,20 +147,32 @@ export function TaskCard({ task, index, sprints }: TaskCardProps) {
                     )}
                   />
                 )}
+                {task.assignee && (
+                  <div className="flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    <span className="text-xs">
+                      {typeof task.assignee === "object"
+                        ? (task.assignee as any).name
+                        : ""}
+                    </span>
+                  </div>
+                )}
                 {task.dueDate && (
-                  <div className="flex items-center">
-                    <Calendar className="mr-1 h-3 w-3" />
-                    {new Date(task.dueDate).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      {new Date(task.dueDate).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
                   </div>
                 )}
               </div>
               {task.storyPoints && (
-                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 font-medium">
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-purple-100 text-xs font-semibold text-purple-700">
                   {task.storyPoints}
-                </div>
+                </span>
               )}
             </div>
           </div>

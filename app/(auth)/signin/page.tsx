@@ -1,49 +1,224 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useState } from "react";
-import { LayoutDashboard } from "lucide-react";
-
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  LayoutDashboard,
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  AlertCircle,
+} from "lucide-react";
+import { toast } from "sonner";
 
 export default function SignInPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSignIn = async () => {
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+
     setIsLoading(true);
+
     try {
-      await signIn("google", { callbackUrl: "/boards" });
+      const result = await signIn("credentials", {
+        redirect: false,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (result?.error) {
+        toast.error(result.error);
+      } else if (result?.ok) {
+        toast.success("Welcome back!");
+        router.push("/boards");
+        router.refresh();
+      }
     } catch (error) {
-      console.error("Login failed:", error);
+      toast.error("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-linear-to-br from-blue-50 via-white to-purple-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
-            <LayoutDashboard className="h-8 w-8" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-blue-600 to-purple-600 shadow-lg">
+            <LayoutDashboard className="h-8 w-8 text-white" />
           </div>
           <h2 className="mt-6 text-3xl font-bold tracking-tight text-gray-900">
-            Welcome to AI Kanban
+            Welcome back
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to manage your projects with AI superpowers
+            Sign in to access your AI Kanban workspace
           </p>
         </div>
 
-        <div className="mt-8 space-y-6">
-          <button
-            onClick={handleSignIn}
-            disabled={isLoading}
-            className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isLoading ? (
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
-            ) : (
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <div className="rounded-2xl bg-white p-8 shadow-xl ring-1 ring-gray-100">
+            <div className="space-y-5">
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <div className="relative mt-1">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`block w-full rounded-lg border ${
+                      errors.email ? "border-red-300" : "border-gray-300"
+                    } py-2.5 pl-10 pr-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                    placeholder="john.doe@example.com"
+                  />
+                </div>
+                {errors.email && (
+                  <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.email}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <div className="relative mt-1">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={`block w-full rounded-lg border ${
+                      errors.password ? "border-red-300" : "border-gray-300"
+                    } py-2.5 pl-10 pr-10 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.password}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="mt-6 w-full rounded-lg bg-linear-to-r from-blue-600 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Signing in...
+                </div>
+              ) : (
+                "Sign In"
+              )}
+            </button>
+
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-4 text-gray-500">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            {/* Google Sign In */}
+            <button
+              type="button"
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  await signIn("google", { callbackUrl: "/boards" });
+                } catch (error) {
+                  toast.error("Google sign in failed");
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading}
+              className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -62,20 +237,20 @@ export default function SignInPage() {
                   fill="#EA4335"
                 />
               </svg>
-            )}
-            <span className="text-base">Sign in with Google</span>
-          </button>
+              Sign in with Google
+            </button>
+          </div>
 
-          <p className="text-center text-sm text-gray-500">
-            Don&apos;t have an account?{" "}
+          <p className="text-center text-sm text-gray-600">
+            Don't have an account?{" "}
             <Link
               href="/signup"
-              className="font-semibold text-blue-600 hover:text-blue-500"
+              className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
             >
-              Sign up
+              Create account
             </Link>
           </p>
-        </div>
+        </form>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, Filter, X, ChevronDown } from "lucide-react";
 import { Task } from "@/types";
 
@@ -22,6 +22,52 @@ export function TaskSearchFilter({
     labels: [] as string[],
   });
 
+  const applyFilters = useCallback(
+    (search: string, currentFilters: typeof filters) => {
+      let filtered = tasks;
+
+      // Search filter
+      if (search) {
+        filtered = filtered.filter(
+          (task) =>
+            task.title.toLowerCase().includes(search.toLowerCase()) ||
+            task.description?.toLowerCase().includes(search.toLowerCase())
+        );
+      }
+
+      // Priority filter
+      if (currentFilters.priority.length > 0) {
+        filtered = filtered.filter((task) =>
+          currentFilters.priority.includes(task.priority)
+        );
+      }
+
+      // Status filter
+      if (currentFilters.status.length > 0) {
+        filtered = filtered.filter((task) =>
+          currentFilters.status.includes(task.status)
+        );
+      }
+
+      // Assignee filter
+      if (currentFilters.assignee.length > 0) {
+        filtered = filtered.filter((task) =>
+          task.assignee
+            ? currentFilters.assignee.includes(task.assignee)
+            : currentFilters.assignee.includes("unassigned")
+        );
+      }
+
+      onFilteredTasksChange(filtered);
+    },
+    [tasks, onFilteredTasksChange]
+  );
+
+  // Reapply filters when tasks prop changes (new tasks added)
+  useEffect(() => {
+    applyFilters(searchTerm, filters);
+  }, [tasks, applyFilters, searchTerm, filters]);
+
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     applyFilters(value, filters);
@@ -39,44 +85,6 @@ export function TaskSearchFilter({
 
     setFilters(newFilters);
     applyFilters(searchTerm, newFilters);
-  };
-
-  const applyFilters = (search: string, currentFilters: typeof filters) => {
-    let filtered = tasks;
-
-    // Search filter
-    if (search) {
-      filtered = filtered.filter(
-        (task) =>
-          task.title.toLowerCase().includes(search.toLowerCase()) ||
-          task.description?.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    // Priority filter
-    if (currentFilters.priority.length > 0) {
-      filtered = filtered.filter((task) =>
-        currentFilters.priority.includes(task.priority)
-      );
-    }
-
-    // Status filter
-    if (currentFilters.status.length > 0) {
-      filtered = filtered.filter((task) =>
-        currentFilters.status.includes(task.status)
-      );
-    }
-
-    // Assignee filter
-    if (currentFilters.assignee.length > 0) {
-      filtered = filtered.filter((task) =>
-        task.assignee
-          ? currentFilters.assignee.includes(task.assignee)
-          : currentFilters.assignee.includes("unassigned")
-      );
-    }
-
-    onFilteredTasksChange(filtered);
   };
 
   const clearFilters = () => {
@@ -127,7 +135,7 @@ export function TaskSearchFilter({
           <Filter className="h-4 w-4" />
           Filters
           {activeFilterCount > 0 && (
-            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-500 px-1.5 text-xs font-semibold text-white">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-500 px-1.5 text-xs font-semibold text-white">
               {activeFilterCount}
             </span>
           )}

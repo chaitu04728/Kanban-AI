@@ -15,7 +15,10 @@ async function getBoards() {
   const user = await User.findOne({ email: session.user.email });
   if (!user) return null;
 
-  const boards = await Board.find({ owner: user._id }).sort({ createdAt: -1 });
+  // Get all boards (shared workspace)
+  const boards = await Board.find({})
+    .populate("owner", "name email")
+    .sort({ createdAt: -1 });
   return JSON.parse(JSON.stringify(boards)); // Serialize for Client Components
 }
 

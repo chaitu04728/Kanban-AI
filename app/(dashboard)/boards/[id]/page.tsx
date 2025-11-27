@@ -21,7 +21,8 @@ async function getBoardData(id: string) {
   const user = await User.findOne({ email: session.user.email });
   if (!user) return null;
 
-  const board = await Board.findOne({ _id: id, owner: user._id });
+  // Allow access to any board (collaborative workspace)
+  const board = await Board.findById(id);
   if (!board) return null;
 
   const tasks = await Task.find({ boardId: id }).sort({ order: 1 });

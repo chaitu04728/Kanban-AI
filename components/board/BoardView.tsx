@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { Column } from "./Column";
 import { Board, Task, Sprint } from "@/types";
@@ -32,6 +32,17 @@ export function BoardView({
     direction: "asc" | "desc";
   } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync state when initialTasks prop changes (after router.refresh())
+  useEffect(() => {
+    const newActiveTasks = initialTasks.filter((task) => !task.archived);
+    if (showArchived) {
+      setTasks(initialTasks);
+    } else {
+      setTasks(newActiveTasks);
+    }
+    // Don't reset filteredTasks here - let TaskSearchFilter handle it
+  }, [initialTasks, showArchived]);
 
   const handleSort = (sortBy: any, direction: "asc" | "desc") => {
     setSortConfig({ sortBy, direction });
@@ -83,44 +94,48 @@ export function BoardView({
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     ) {
+      return; // No change
     }
 
-    // Optimistic update
-    const newTasks = Array.from(tasks);
-    const taskIndex = newTasks.findIndex((t) => t._id === draggableId);
-    const task = newTasks[taskIndex];
+    // Store original state for rollback
+    const originalTasks = tasks;
+    const originalFilteredTasks = filteredTasks;
 
-    const updatedTask = {
-      ...task,
-      status: destination.droppableId,
-    };
-
-    newTasks.splice(taskIndex, 1);
-    newTasks.splice(taskIndex, 0, updatedTask); // Put it back (simplified)
-
-    setTasks(
-      newTasks.map((t) =>
-        t._id === draggableId ? { ...t, status: destination.droppableId } : t
-      )
+    // Optimistic update - immediately update the UI
+    const updatedTasks = tasks.map((t) =>
+      t._id === draggableId ? { ...t, status: destination.droppableId } : t
     );
+
+    const updatedFilteredTasks = filteredTasks.map((t) =>
+      t._id === draggableId ? { ...t, status: destination.droppableId } : t
+    );
+
+    setTasks(updatedTasks);
+    setFilteredTasks(updatedFilteredTasks);
 
     // API Call
     try {
-      await fetch(`/api/tasks/${draggableId}`, {
+      const response = await fetch(`/api/tasks/${draggableId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: destination.droppableId,
         }),
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to update task");
+      }
     } catch (error) {
       console.error("Failed to update task", error);
-      setTasks(initialTasks);
+      // Rollback on error
+      setTasks(originalTasks);
+      setFilteredTasks(originalFilteredTasks);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full flex-col space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <TaskSearchFilter
@@ -145,7 +160,7 @@ export function BoardView({
       </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex h-full gap-6 overflow-x-auto pb-4">
+        <div className="flex flex-1 gap-4">
           {board.columns.map((column) => {
             const columnTasks = filteredTasks.filter(
               (task) => task.status === column.id
